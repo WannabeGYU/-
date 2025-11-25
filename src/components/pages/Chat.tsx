@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Send, FileText, QrCode, CheckCircle } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
 import type { UserRole, MatchingData } from '../../App';
 
 interface ChatProps {
@@ -9,9 +10,16 @@ interface ChatProps {
   onBack: () => void;
 }
 
+interface Message {
+  id: number;
+  sender: 'system' | 'user' | 'partner';
+  text: string;
+  timestamp: Date;
+}
+
 export function Chat({ matchingData, userRole, onOpenQRPreview, onBack }: ChatProps) {
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       sender: 'system',
@@ -19,24 +27,68 @@ export function Chat({ matchingData, userRole, onOpenQRPreview, onBack }: ChatPr
       timestamp: new Date(),
     },
   ]);
+  const socketRef = useRef<Socket | null>(null);
 
-  const partnerName = userRole === 'brand' 
-    ? matchingData.venue.name 
+  const partnerName = userRole === 'brand'
+    ? matchingData.venue.name
     : matchingData.brand.name;
+
+  // Unique room ID based on matching data (simplified for demo)
+  const roomId = `room_${matchingData.brand.id}_${matchingData.venue.id}`;
+
+  useEffect(() => {
+    // Connect to Socket.io server
+    socketRef.current = io('http://localhost:3000');
+
+    socketRef.current.emit('join_room', roomId);
+
+    socketRef.current.on('receive_message', (data: any) => {
+      // Only add message if it's from the partner (or self if we want to see echo, but usually we add self immediately)
+      // For simplicity in this demo, we'll just append whatever comes in if it's not from 'me' (handled by sender check in real app)
+      // Here we assume 'receive_message' broadcasts to everyone in room including sender, 
+      // OR we can just add local message immediately and ignore self-message from server.
+
+      // Let's assume server broadcasts to others. But for this simple demo, let's just listen.
+      if (data.sender !== userRole) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            sender: 'partner', // Received messages are from partner
+            text: data.message,
+            timestamp: new Date(data.timestamp),
+          },
+        ]);
+      }
+    });
+
+    return () => {
+      socketRef.current?.disconnect();
+    };
+  }, [roomId, userRole]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
 
-    setMessages([
-      ...messages,
-      {
-        id: messages.length + 1,
-        sender: 'user',
-        text: message,
-        timestamp: new Date(),
-      },
-    ]);
+    const newMessage: Message = {
+      id: Date.now(),
+      sender: 'user',
+      text: message,
+      timestamp: new Date(),
+    };
+
+    // Add locally
+    setMessages((prev) => [...prev, newMessage]);
+
+    // Send to server
+    socketRef.current?.emit('send_message', {
+      room: roomId,
+      message: message,
+      sender: userRole,
+      timestamp: new Date().toISOString(),
+    });
+
     setMessage('');
   };
 
@@ -101,7 +153,7 @@ export function Chat({ matchingData, userRole, onOpenQRPreview, onBack }: ChatPr
           </button>
 
           {/* QR Code Button */}
-          <button 
+          <button
             onClick={onOpenQRPreview}
             className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all border-2 border-slate-200 hover:border-green-400 text-left"
           >
@@ -126,19 +178,17 @@ export function Chat({ matchingData, userRole, onOpenQRPreview, onBack }: ChatPr
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex ${
-                  msg.sender === 'system' ? 'justify-center' : 
-                  msg.sender === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+                className={`flex ${msg.sender === 'system' ? 'justify-center' :
+                    msg.sender === 'user' ? 'justify-end' : 'justify-start'
+                  }`}
               >
                 <div
-                  className={`max-w-[70%] px-4 py-3 rounded-2xl ${
-                    msg.sender === 'system' 
+                  className={`max-w-[70%] px-4 py-3 rounded-2xl ${msg.sender === 'system'
                       ? 'bg-yellow-50 text-yellow-800 text-sm text-center border border-yellow-200'
                       : msg.sender === 'user'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-slate-900'
-                  }`}
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-100 text-slate-900'
+                    }`}
                 >
                   <p>{msg.text}</p>
                 </div>

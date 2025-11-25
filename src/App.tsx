@@ -8,6 +8,7 @@ import { MatchingProposal } from './components/pages/MatchingProposal';
 import { Chat } from './components/pages/Chat';
 import { QRPreview } from './components/pages/QRPreview';
 import { AdminLayout } from './components/admin/AdminLayout';
+import { LoginModal } from './components/auth/LoginModal';
 
 export type UserRole = 'brand' | 'venue' | null;
 export type Page = 'landing' | 'signup' | 'profile' | 'browse' | 'matching' | 'chat' | 'qr-preview' | 'admin';
@@ -40,11 +41,12 @@ export interface MatchingData {
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('landing');
+  const [currentPage, setCurrentPage] = useState<Page>('browse'); // Default to Browse
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [userProfile, setUserProfile] = useState<BrandProfileData | VenueProfileData | null>(null);
   const [selectedCard, setSelectedCard] = useState<any>(null);
   const [matchingData, setMatchingData] = useState<MatchingData | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const handleRoleSelect = (role: UserRole) => {
     setUserRole(role);
@@ -86,37 +88,59 @@ export default function App() {
     setCurrentPage('chat');
   };
 
-  // Add admin access
-  const handleAdminAccess = () => {
-    setCurrentPage('admin');
+  // Login Logic
+  const handleLogin = (id: string, role: 'admin' | 'user') => {
+    setIsLoginModalOpen(false);
+    if (role === 'admin') {
+      setCurrentPage('admin');
+    } else {
+      // For demo, we'll just set a dummy role/profile if not already set
+      if (!userRole) {
+        setUserRole('brand'); // Default to brand for demo
+        setUserProfile({
+          name: id,
+          category: 'General',
+          link: '',
+          image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
+          collaborationType: [],
+          priceRange: ''
+        });
+      }
+    }
+  };
+
+  const handleLoginRequest = () => {
+    setIsLoginModalOpen(true);
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
       {currentPage === 'landing' && (
-        <Landing onRoleSelect={handleRoleSelect} onAdminAccess={handleAdminAccess} />
+        <Landing onRoleSelect={handleRoleSelect} />
       )}
-      
+
       {currentPage === 'signup' && userRole && (
         <SignUp role={userRole} onComplete={handleSignUpComplete} />
       )}
-      
+
       {currentPage === 'profile' && userRole === 'brand' && (
         <BrandProfile onComplete={handleProfileComplete} />
       )}
-      
+
       {currentPage === 'profile' && userRole === 'venue' && (
         <VenueProfile onComplete={handleProfileComplete} />
       )}
-      
-      {currentPage === 'browse' && userProfile && (
-        <Browse 
-          userRole={userRole!} 
+
+      {/* Browse is now visible to guests (userRole can be null) */}
+      {currentPage === 'browse' && (
+        <Browse
+          userRole={userRole}
           userProfile={userProfile}
           onCardSelect={handleCardSelect}
+          onLoginRequest={handleLoginRequest}
         />
       )}
-      
+
       {currentPage === 'matching' && selectedCard && userProfile && (
         <MatchingProposal
           userRole={userRole!}
@@ -126,7 +150,7 @@ export default function App() {
           onBack={handleBackToBrowse}
         />
       )}
-      
+
       {currentPage === 'chat' && matchingData && (
         <Chat
           matchingData={matchingData}
@@ -135,14 +159,20 @@ export default function App() {
           onBack={handleBackToBrowse}
         />
       )}
-      
+
       {currentPage === 'qr-preview' && (
         <QRPreview onBack={handleBackToChat} />
       )}
-      
+
       {currentPage === 'admin' && (
         <AdminLayout />
       )}
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLogin={handleLogin}
+      />
     </div>
   );
 }

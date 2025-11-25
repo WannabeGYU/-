@@ -2,34 +2,13 @@ import { Store, Building2, Sparkles, Shield } from 'lucide-react';
 import type { UserRole } from '../../App';
 
 interface LandingProps {
-  onRoleSelect: (role: UserRole) => void;
-  onAdminAccess: () => void;
-}
-
-export function Landing({ onRoleSelect, onAdminAccess }: LandingProps) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white flex items-center justify-center p-6">
-      {/* Admin Button - Top Right */}
-      <button
-        onClick={onAdminAccess}
-        className="absolute top-6 right-6 flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30 hover:bg-white/20 transition-colors text-sm"
-      >
-        <Shield className="w-4 h-4" />
-        <span>관리자</span>
-      </button>
-
-      <div className="max-w-5xl w-full">
-        <div className="text-center mb-16">
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <Sparkles className="w-12 h-12" />
-            <span className="text-6xl">🎯</span>
-            <Sparkles className="w-12 h-12" />
-          </div>
+  <Sparkles className = "w-12 h-12" />
+          </div >
           
           <h1 className="text-5xl md:text-7xl mb-4">COLLABEAT</h1>
           <p className="text-2xl md:text-3xl opacity-90 mb-6">콜라비트</p>
           <p className="text-xl md:text-2xl opacity-80">브랜드 × 공간의 수익형 협업 플랫폼</p>
-        </div>
+        </div >
 
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Brand Button */}
@@ -88,7 +67,7 @@ export function Landing({ onRoleSelect, onAdminAccess }: LandingProps) {
         <div className="text-center mt-12 opacity-70">
           <p className="text-sm">역할을 선택하면 회원가입이 시작됩니다</p>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

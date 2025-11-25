@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Filter, MapPin, Tag, Search } from 'lucide-react';
+import { Filter, MapPin, Tag, Search, UserCircle } from 'lucide-react';
 import type { UserRole, BrandProfileData, VenueProfileData } from '../../App';
 
 interface BrowseProps {
   userRole: UserRole;
-  userProfile: BrandProfileData | VenueProfileData;
+  userProfile: BrandProfileData | VenueProfileData | null;
   onCardSelect: (card: any) => void;
+  onLoginRequest: () => void;
 }
 
 // Mock data for demonstration
@@ -79,24 +80,44 @@ const mockBrands = [
   },
 ];
 
-export function Browse({ userRole, userProfile, onCardSelect }: BrowseProps) {
+export function Browse({ userRole, userProfile, onCardSelect, onLoginRequest }: BrowseProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>('전체');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // If guest, show venues by default (or mix, but venues is safer for "Browse")
   const cards = userRole === 'brand' ? mockVenues : mockBrands;
   const filterOptions = ['전체', '전시', '팝업', '판매', '소품'];
+
+  const handleCardClick = (card: any) => {
+    if (!userRole) {
+      onLoginRequest();
+    } else {
+      onCardSelect(card);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-8 px-6">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl mb-2">
-            {userRole === 'brand' ? '협업할 공간 찾기' : '협업할 브랜드 찾기'}
-          </h1>
-          <p className="opacity-90">
-            마음에 드는 {userRole === 'brand' ? '공간' : '브랜드'}을 찾아 협업을 제안하세요
-          </p>
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl mb-2">
+              {userRole ? (userRole === 'brand' ? '협업할 공간 찾기' : '협업할 브랜드 찾기') : '둘러보기'}
+            </h1>
+            <p className="opacity-90">
+              {userRole ? (userRole === 'brand' ? '마음에 드는 공간을 찾아 협업을 제안하세요' : '마음에 드는 브랜드를 찾아 협업을 제안하세요') : '로그인하고 협업을 시작해보세요'}
+            </p>
+          </div>
+          {!userRole && (
+            <button
+              onClick={onLoginRequest}
+              className="bg-white/20 backdrop-blur-sm px-6 py-2 rounded-full hover:bg-white/30 transition-colors flex items-center gap-2"
+            >
+              <UserCircle className="w-5 h-5" />
+              <span>로그인</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -110,7 +131,7 @@ export function Browse({ userRole, userProfile, onCardSelect }: BrowseProps) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={`${userRole === 'brand' ? '공간' : '브랜드'} 검색...`}
+              placeholder="검색..."
               className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-indigo-500 focus:outline-none"
             />
           </div>
@@ -121,11 +142,10 @@ export function Browse({ userRole, userProfile, onCardSelect }: BrowseProps) {
               <button
                 key={filter}
                 onClick={() => setSelectedFilter(filter)}
-                className={`px-4 py-2 rounded-full whitespace-nowrap transition-all ${
-                  selectedFilter === filter
+                className={`px-4 py-2 rounded-full whitespace-nowrap transition-all ${selectedFilter === filter
                     ? 'bg-indigo-600 text-white'
                     : 'bg-slate-100 hover:bg-slate-200'
-                }`}
+                  }`}
               >
                 {filter}
               </button>
@@ -140,7 +160,7 @@ export function Browse({ userRole, userProfile, onCardSelect }: BrowseProps) {
           {cards.map((card) => (
             <div
               key={card.id}
-              onClick={() => onCardSelect(card)}
+              onClick={() => handleCardClick(card)}
               className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-all cursor-pointer hover:-translate-y-1"
             >
               {/* Image */}
@@ -155,7 +175,7 @@ export function Browse({ userRole, userProfile, onCardSelect }: BrowseProps) {
               {/* Content */}
               <div className="p-5">
                 <h3 className="text-xl mb-2">{card.name}</h3>
-                
+
                 <div className="flex items-center gap-2 text-slate-600 mb-3">
                   {'location' in card ? (
                     <>
@@ -190,11 +210,13 @@ export function Browse({ userRole, userProfile, onCardSelect }: BrowseProps) {
       </div>
 
       {/* No Chat Notice */}
-      <div className="fixed bottom-6 right-6 bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-4 shadow-lg max-w-sm">
-        <p className="text-sm">
-          💡 <span className="text-yellow-800">채팅은 매칭 수락 후에만 가능합니다</span>
-        </p>
-      </div>
+      {userRole && (
+        <div className="fixed bottom-6 right-6 bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-4 shadow-lg max-w-sm">
+          <p className="text-sm">
+            💡 <span className="text-yellow-800">채팅은 매칭 수락 후에만 가능합니다</span>
+          </p>
+        </div>
+      )}
     </div>
   );
 }
